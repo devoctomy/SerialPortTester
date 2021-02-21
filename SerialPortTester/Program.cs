@@ -34,16 +34,7 @@ namespace hello_serialport
             }
 
             port.Open();
-            if(port.IsOpen)
-            {
-                Console.WriteLine("Port opened");
-            }
-            else
-            {
-                Console.WriteLine("Failed to open port");
-                return;
-            }
-
+            Console.WriteLine("Port opened, type to send data (sent on return)");
             port.DataReceived += Port_DataReceived;
 
             while(true)
