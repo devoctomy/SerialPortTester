@@ -34,28 +34,31 @@ namespace hello_serialport
             }
 
             port.Open();
-            Console.WriteLine("Port opened, type to send data (sent on return)");
-            port.DataReceived += Port_DataReceived;
 
-            while(true)
+            AsyncCallback callback = null;
+            var rxBuffer = new byte[1024];
+            callback = ar => {
+                int bytesRead = port.BaseStream.EndRead(ar);
+                Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
+                port.BaseStream.BeginRead(rxBuffer, 0, rxBuffer.Length, callback, null);
+            };
+            port.BaseStream.BeginRead(rxBuffer, 0, rxBuffer.Length, callback, null);
+            Console.WriteLine("Port opened, type to send data (sent on return)");
+
+            while (true)
             {
                 var input = Console.ReadLine();
                 if(input == "quit")
                 {
                     break;
                 }
-                port.Write($"{input}\n");
+                var txBuffer = System.Text.Encoding.ASCII.GetBytes($"{input}\n");
+                await port.BaseStream.WriteAsync(txBuffer, 0, txBuffer.Length);
                 Console.WriteLine($"TX :: {input}");
             }
 
             Console.WriteLine("Press any key to exit.");
             Console.ReadKey();
-        }
-
-        private static void Port_DataReceived(object sender, SerialDataReceivedEventArgs e)
-        {
-            var port = sender as SerialPort;
-            Console.WriteLine($"RX :: {port.ReadExisting()}");
         }
 
         private static string InputSelection(
