@@ -10,12 +10,13 @@ void setup() {
 }
 
 void loop() {
-  if(Serial.available() > 0)
+  while(Serial.available() > 0)
   {
     int incomingByte = Serial.read();
     if(incomingByte == 10 || incomingByte == 13)
     {
       received = true;
+      break;
     }
     else
     {
