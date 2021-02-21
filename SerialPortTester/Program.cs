@@ -38,7 +38,15 @@ namespace hello_serialport
             AsyncCallback callback = null;
             var rxBuffer = new byte[1024];
             callback = ar => {
-                int bytesRead = port.BaseStream.EndRead(ar);
+                int bytesRead = 0;
+                try
+                {
+                    bytesRead = port.BaseStream.EndRead(ar);
+                }
+                catch(InvalidOperationException)
+                {
+                    return;
+                }
                 Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
                 port.BaseStream.BeginRead(rxBuffer, 0, rxBuffer.Length, callback, null);
             };
@@ -56,6 +64,8 @@ namespace hello_serialport
                 await port.BaseStream.WriteAsync(txBuffer, 0, txBuffer.Length);
                 Console.WriteLine($"TX :: {input}");
             }
+
+            port.Close();
 
             Console.WriteLine("Press any key to exit.");
             Console.ReadKey();
