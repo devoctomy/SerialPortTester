@@ -19,6 +19,7 @@ namespace hello_serialport
             var dataBits = InputInteger("Please enter the data bits to use (Default = 8)", 8);
             var parity = InputSelection("Please enter the parity to use (Default = None)", new List<string>(Enum.GetNames(typeof(Parity))), Parity.None.ToString());
             var stopBits = InputSelection("Please enter the parity to use (Default = One)", new List<string>(Enum.GetNames(typeof(StopBits))), StopBits.One.ToString());
+            var dtrEnable = InputSelection("Enable dtr y/n? (Default = y)", new List<string>(new[] { "Yes", "No" }), "Yes");
             port = new SerialPort(
                 selectedPort,
                 baudRate,
@@ -26,7 +27,7 @@ namespace hello_serialport
                 dataBits,
                 Enum.Parse<StopBits>(stopBits, true));
 
-            port.ErrorReceived += Port_ErrorReceived;
+            port.DtrEnable = dtrEnable == "Yes";
             port.Open();
             var cancellationTokenSource = new CancellationTokenSource();
             var readingTask = BeginReadingAsync(port);
@@ -73,11 +74,6 @@ namespace hello_serialport
                     Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
                 }
             }
-        }
-
-        private static void Port_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
-        {
-            Console.WriteLine("Error!");
         }
 
         private static string GetEndPacket()
