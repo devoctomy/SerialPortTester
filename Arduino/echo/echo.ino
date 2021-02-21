@@ -1,7 +1,7 @@
 unsigned long startedAt;
 bool received;
 String buffer;
-bool recogniseMarlin = true;
+bool emulateMarlin = true;
 
 void setup() {
     Serial.begin(115200);
@@ -25,7 +25,7 @@ void loop() {
   }
   if(received && buffer.length() > 0)
   { 
-    if(recogniseMarlin)
+    if(emulateMarlin)
     {
       if(buffer == "M105")
       {
@@ -47,7 +47,11 @@ void loop() {
 
   if(millis() - startedAt >= 5000)
   {
-    //Serial.print("Waiting for input...");  
+    if(emulateMarlin)
+    {
+      //Send a fake temperature update
+      Serial.print("ok T:-15.00 /0.00 B:-15.00 /0.00 T0:-15.00 /0.00 T1:-15.00 /0.00 @:0 B@:0 @0:0 @1:0\n");
+    }
     startedAt = millis();
   }
 }

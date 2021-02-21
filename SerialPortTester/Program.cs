@@ -29,9 +29,7 @@ namespace hello_serialport
             port.ErrorReceived += Port_ErrorReceived;
             port.Open();
             var cancellationTokenSource = new CancellationTokenSource();
-            var readingTask = BeginReadingAsync(
-                port,
-                cancellationTokenSource.Token);
+            var readingTask = BeginReadingAsync(port);
 
             Console.WriteLine("Port opened, type to send data (sent on return)");
             while (true)
@@ -57,35 +55,24 @@ namespace hello_serialport
             Console.ReadKey();
         }
 
-        private static async Task BeginReadingAsync(
-            SerialPort port,
-            CancellationToken cancellationToken)
+        private static async Task BeginReadingAsync(SerialPort port)
         {
             await Task.Yield();
             Console.WriteLine("Started async reading from serial port.");
 
             var rxBuffer = new byte[1024];
-            while(!cancellationToken.IsCancellationRequested)
+            while(true)
             {
-                try
+                var bytesRead = await port.BaseStream.ReadAsync(
+                    rxBuffer,
+                    0,
+                    rxBuffer.Length,
+                    CancellationToken.None);
+                if (bytesRead > 0)
                 {
-                    var bytesRead = await port.BaseStream.ReadAsync(
-                        rxBuffer,
-                        0,
-                        rxBuffer.Length,
-                        cancellationToken);
-                    if (bytesRead > 0)
-                    {
-                        Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
-                    }
-                }
-                catch(TaskCanceledException)
-                {
-                    Console.WriteLine("Reading aborted.");
+                    Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
                 }
             }
-
-            Console.WriteLine("Finished reading from serial port.");
         }
 
         private static void Port_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
