@@ -34,12 +34,12 @@ namespace hello_serialport
                 try
                 {
                     bytesRead = port.BaseStream.EndRead(ar);
+                    Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
                 }
-                catch(InvalidOperationException)
+                catch (InvalidOperationException)
                 {
                     return;
                 }
-                Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
                 port.BaseStream.BeginRead(rxBuffer, 0, rxBuffer.Length, callback, null);
             };
             port.BaseStream.BeginRead(rxBuffer, 0, rxBuffer.Length, callback, null);
