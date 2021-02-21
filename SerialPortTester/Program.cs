@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO.Ports;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace hello_serialport
@@ -25,35 +26,28 @@ namespace hello_serialport
                 dataBits,
                 Enum.Parse<StopBits>(stopBits, true));
 
+            port.ErrorReceived += Port_ErrorReceived;
             port.Open();
+            var cancellationTokenSource = new CancellationTokenSource();
+            var readingTask = BeginReadingAsync(
+                port,
+                cancellationTokenSource.Token);
 
-            AsyncCallback callback = null;
-            var rxBuffer = new byte[1024];
-            callback = ar => {
-                int bytesRead = 0;
-                try
-                {
-                    bytesRead = port.BaseStream.EndRead(ar);
-                    Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
-                }
-                catch (InvalidOperationException)
-                {
-                    return;
-                }
-                port.BaseStream.BeginRead(rxBuffer, 0, rxBuffer.Length, callback, null);
-            };
-            port.BaseStream.BeginRead(rxBuffer, 0, rxBuffer.Length, callback, null);
             Console.WriteLine("Port opened, type to send data (sent on return)");
-
             while (true)
             {
                 var input = Console.ReadLine();
                 if(input == "quit")
                 {
+                    cancellationTokenSource.Cancel();
                     break;
                 }
                 var txBuffer = System.Text.Encoding.ASCII.GetBytes($"{input}{GetEndPacket()}");
-                await port.BaseStream.WriteAsync(txBuffer, 0, txBuffer.Length);
+                await port.BaseStream.WriteAsync(
+                    txBuffer,
+                    0,
+                    txBuffer.Length,
+                    CancellationToken.None);
                 Console.WriteLine($"TX :: {input}");
             }
 
@@ -61,6 +55,42 @@ namespace hello_serialport
 
             Console.WriteLine("Press any key to exit.");
             Console.ReadKey();
+        }
+
+        private static async Task BeginReadingAsync(
+            SerialPort port,
+            CancellationToken cancellationToken)
+        {
+            await Task.Yield();
+            Console.WriteLine("Started async reading from serial port.");
+
+            var rxBuffer = new byte[1024];
+            while(!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var bytesRead = await port.BaseStream.ReadAsync(
+                        rxBuffer,
+                        0,
+                        rxBuffer.Length,
+                        cancellationToken);
+                    if (bytesRead > 0)
+                    {
+                        Console.WriteLine("RX :: " + System.Text.Encoding.ASCII.GetString(rxBuffer, 0, bytesRead));
+                    }
+                }
+                catch(TaskCanceledException)
+                {
+                    Console.WriteLine("Reading aborted.");
+                }
+            }
+
+            Console.WriteLine("Finished reading from serial port.");
+        }
+
+        private static void Port_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
+        {
+            Console.WriteLine("Error!");
         }
 
         private static string GetEndPacket()
